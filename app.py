@@ -44,6 +44,12 @@ class Squad(db.Model):
     data = db.Column(db.Text)
     user = db.relationship('User', backref=db.backref('squad', uselist=False))
 
+class Pitch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    data = db.Column(db.Text)
+    user = db.relationship('User', backref=db.backref('pitch', uselist=False))
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -132,6 +138,43 @@ def analyze():
     return {"advice": advice}
 
 
+@app.route('/api/match_analysis', methods=['POST'])
+@login_required
+def match_analysis():
+    data = request.json
+    squad = data.get('squad', '')
+    summary = data.get('summary', '')
+    performance = data.get('performance')
+    set_pieces = data.get('set_pieces')
+    prompt = "TacticalOracle match analysis. "
+    if performance:
+        prompt += "Focus on individual performances. "
+    if set_pieces:
+        prompt += "Include set-piece analysis. "
+    prompt += "Squad:" + squad
+    resp = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[{"role": "system", "content": prompt}, {"role": "user", "content": summary}],
+        max_tokens=400,
+    )
+    return {"analysis": resp.choices[0].message.content}
+
+
+@app.route('/api/training', methods=['POST'])
+@login_required
+def training():
+    data = request.json
+    choice = data.get('choice')
+    focus = data.get('focus')
+    prompt = f"Create football training drills for {choice} focusing on {focus}. Include setup and coaching points."
+    resp = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=300,
+    )
+    return {"drills": resp.choices[0].message.content}
+
+
 @app.route('/api/save_squad', methods=['POST'])
 @login_required
 def save_squad():
@@ -155,6 +198,43 @@ def load_squad():
     if existing:
         return {"squad": json.loads(existing.data)}
     return {"squad": None}
+
+
+@app.route('/api/save_pitch', methods=['POST'])
+@login_required
+def save_pitch():
+    data = request.json.get('pitch')
+    if data is None:
+        return {"error": "Missing pitch"}, 400
+    existing = Pitch.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        existing.data = json.dumps(data)
+    else:
+        existing = Pitch(user_id=current_user.id, data=json.dumps(data))
+        db.session.add(existing)
+    db.session.commit()
+    return {"message": "Pitch saved"}
+
+
+@app.route('/api/load_pitch')
+@login_required
+def load_pitch():
+    existing = Pitch.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        return {"pitch": json.loads(existing.data)}
+    return {"pitch": None}
+
+
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def change_password():
+    data = request.json
+    new_password = data.get('password')
+    if not new_password:
+        return {"error": "Missing password"}, 400
+    current_user.password = generate_password_hash(new_password, method='pbkdf2:sha256')
+    db.session.commit()
+    return {"message": "Password updated"}
 
 # ✅ React catch-all route — must come LAST before app.run()
 @app.route('/', defaults={'path': ''})
