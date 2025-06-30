@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask, send_from_directory, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, current_user, login_user, login_required, logout_user
+import json
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 import stripe, openai
@@ -35,6 +36,13 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     subscribed = db.Column(db.Boolean, default=False)
+
+
+class Squad(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    data = db.Column(db.Text)
+    user = db.relationship('User', backref=db.backref('squad', uselist=False))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -123,6 +131,31 @@ def analyze():
     advice = resp.choices[0].message.content
     return {"advice": advice}
 
+
+@app.route('/api/save_squad', methods=['POST'])
+@login_required
+def save_squad():
+    data = request.json.get('squad')
+    if data is None:
+        return {"error": "Missing squad"}, 400
+    existing = Squad.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        existing.data = json.dumps(data)
+    else:
+        existing = Squad(user_id=current_user.id, data=json.dumps(data))
+        db.session.add(existing)
+    db.session.commit()
+    return {"message": "Squad saved"}
+
+
+@app.route('/api/load_squad')
+@login_required
+def load_squad():
+    existing = Squad.query.filter_by(user_id=current_user.id).first()
+    if existing:
+        return {"squad": json.loads(existing.data)}
+    return {"squad": None}
+
 # ✅ React catch-all route — must come LAST before app.run()
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -135,4 +168,6 @@ def serve_react(path):
 
 # ✅ Start server
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

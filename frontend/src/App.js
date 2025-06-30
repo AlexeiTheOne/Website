@@ -4,6 +4,7 @@ import Landing from './pages/Landing';
 import Register from './pages/Register';
 import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
+import EditSquad from './pages/EditSquad';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} /> {/* ✅ Fixes the issue */}
+      <Route path="/dashboard/edit-squad" element={<EditSquad />} />
     </Routes>
   );
 }
