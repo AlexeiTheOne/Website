@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Player from '../components/Player';
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
 
 const defaultSquad = [
   { id: 1, name: 'GK', number: 1, position: 'GK', isBench: false },
@@ -73,25 +74,28 @@ export default function EditSquad() {
   );
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-center text-2xl font-bold mb-4">Edit Squad</h1>
-      <div className="bg-green-700 rounded-lg p-2 mb-4">
-        {renderZone('GK')}
-        {renderZone('DEF')}
-        {renderZone('MID')}
-        {renderZone('ATT')}
-      </div>
-      <div
-        className="bg-gray-700 p-2 rounded-lg flex flex-wrap justify-center space-x-4"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => onDropZone(e, 'BENCH')}
-      >
-        {players.filter(p => p.isBench).map(p => (
-          <Player key={p.id} player={p} onEdit={updatePlayer} draggableProps={dragProps(p.id)} />
-        ))}
-      </div>
-      <div className="text-center mt-4">
-        <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={saveSquad}>Save Squad</button>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="p-4 max-w-xl mx-auto flex-1">
+        <h1 className="text-center text-2xl font-bold mb-4">Edit Squad</h1>
+        <div className="bg-green-700 rounded-lg p-2 mb-4">
+          {renderZone('GK')}
+          {renderZone('DEF')}
+          {renderZone('MID')}
+          {renderZone('ATT')}
+        </div>
+        <div
+          className="bg-gray-700 p-2 rounded-lg flex flex-wrap justify-center space-x-4"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => onDropZone(e, 'BENCH')}
+        >
+          {players.filter(p => p.isBench).map(p => (
+            <Player key={p.id} player={p} onEdit={updatePlayer} draggableProps={dragProps(p.id)} />
+          ))}
+        </div>
+        <div className="text-center mt-4">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={saveSquad}>Save Squad</button>
+        </div>
       </div>
     </div>
   );
